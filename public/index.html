@@ -1,0 +1,2916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>1 Minute Ambulance – Emergency Response System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Font Awesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Leaflet CSS for Map -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+
+  <!-- Leaflet Routing Machine CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+  <!-- Google Identity Services -->
+  <!-- <script src="https://accounts.google.com/gsi/client" async defer></script> -->
+
+  <!-- Suppress ngrok preload warnings -->
+  <link rel="preload" href="https://assets.ngrok.com/fonts/euclid-square/EuclidSquare-MediumItalic-WebS.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="https://assets.ngrok.com/fonts/euclid-square/EuclidSquare-Regular-WebS.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="https://assets.ngrok.com/fonts/euclid-square/EuclidSquare-RegularItalic-WebS.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="https://assets.ngrok.com/fonts/euclid-square/EuclidSquare-Medium-WebS.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="https://assets.ngrok.com/fonts/ibm-plex-mono/IBMPlexMono-Text.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="https://assets.ngrok.com/fonts/ibm-plex-mono/IBMPlexMono-SemiBoldItalic.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="https://assets.ngrok.com/fonts/ibm-plex-mono/IBMPlexMono-SemiBold.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="https://assets.ngrok.com/fonts/ibm-plex-mono/IBMPlexMono-TextItalic.woff" as="font" type="font/woff" crossorigin>
+
+  <style>
+    :root {
+      --primary: #ff6b6b;
+      --primary-dark: #ee5a52;
+      --secondary: #4ecdc4;
+      --accent: #ffe66d;
+      --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --text: #2d3748;
+      --muted: #718096;
+      --border: #e2e8f0;
+      --success: #48bb78;
+      --warning: #ed8936;
+      --danger: #f56565;
+      --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      --shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 450px;
+      margin: 20px auto;
+      background: var(--card-bg);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+      animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .topbar {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, var(--accent), #fff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: var(--primary);
+      box-shadow: 0 4px 15px rgba(255, 230, 109, 0.3);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .brand-text-main {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-text-sub {
+      font-size: 0.8rem;
+      opacity: 0.9;
+    }
+
+    .profile-dot {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: white;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .profile-dot:hover {
+      transform: scale(1.1);
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .role-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .role-tab {
+      text-align: center;
+      padding: 0.8rem 0.5rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: var(--muted);
+      position: relative;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      border-bottom: 3px solid transparent;
+    }
+
+    .role-tab:hover {
+      background: rgba(255, 107, 107, 0.05);
+      color: var(--primary);
+    }
+
+    .role-tab.active {
+      color: var(--primary);
+      font-weight: 700;
+      background: rgba(255, 107, 107, 0.1);
+      border-bottom-color: var(--primary);
+    }
+
+    .screen {
+      display: none;
+      padding: 1.5rem 1.2rem;
+      animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 1.4rem;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+      font-weight: 500;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: white;
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+      transition: all 0.3s ease;
+      margin-bottom: 1rem;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+      transform: translateY(-1px);
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .btn {
+      border-radius: 12px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      box-shadow: none;
+    }
+
+    .btn-outline:hover {
+      background: var(--primary);
+      color: white;
+      transform: translateY(-1px);
+    }
+
+    .helper {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .helper span {
+      color: var(--primary);
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .helper span:hover {
+      color: var(--primary-dark);
+    }
+
+    .small {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    .status {
+      font-size: 0.9rem;
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 12px;
+      background: #f8fafc;
+      border-left: 4px solid var(--primary);
+    }
+
+    .status.success {
+      border-left-color: var(--success);
+      background: rgba(72, 187, 120, 0.1);
+    }
+
+    .status.warning {
+      border-left-color: var(--warning);
+      background: rgba(237, 137, 54, 0.1);
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 1.2rem;
+      border: 1px solid var(--border);
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .badge-eta {
+      font-size: 0.9rem;
+      background: linear-gradient(135deg, var(--warning), #ffb347);
+      color: white;
+      border-radius: 20px;
+      padding: 0.4rem 0.8rem;
+      border: none;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(237, 137, 54, 0.3);
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0.7; }
+    }
+
+    .map-box {
+      height: 250px;
+      border-radius: 12px;
+      margin-top: 0.8rem;
+      border: 2px solid var(--border);
+      background: #f8fafc;
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .badge-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      padding: 0.3rem 0.7rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .pill {
+      font-size: 0.8rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--muted);
+    }
+
+    .sos-row {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .sos-btn {
+      flex: 1;
+      padding: 0.6rem 0.7rem;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .sos-btn:hover {
+      border-color: var(--primary);
+      background: rgba(255, 107, 107, 0.05);
+      color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+    }
+
+    .sos-btn span {
+      font-size: 1.5rem;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-icon"><i class="fas fa-ambulance"></i></div>
+        <div>
+          <div class="brand-text-main">1 MIN AMBULANCE</div>
+          <div class="brand-text-sub">Emergency Response System</div>
+        </div>
+      </div>
+      <div class="profile-dot" id="profileInitial"><i class="fas fa-user"></i></div>
+    </div>
+
+    <div class="role-tabs">
+      <div class="role-tab active" id="tab-user" onclick="if (typeof switchRole === 'function') switchRole('user')">User</div>
+      <div class="role-tab" id="tab-driver" onclick="if (typeof switchRole === 'function') switchRole('driver')">Driver</div>
+      <div class="role-tab" id="tab-hospital" onclick="if (typeof switchRole === 'function') switchRole('hospital')">Hospital</div>
+      <div class="role-tab" id="tab-admin" onclick="if (typeof switchRole === 'function') switchRole('admin')">Admin</div>
+    </div>
+
+    <!-- USER SCREENS -->
+    <div class="screen" id="user-signup-screen">
+      <h1>Create account</h1>
+      <p class="subtitle">Sign up to book ambulances like Rapido rides.</p>
+
+      <div class="card">
+        <form id="signup-form">
+          <label for="su-name">Full name</label>
+          <input id="su-name" type="text" placeholder="e.g., Srujan M G" required />
+
+          <label for="su-phone">Mobile number</label>
+          <input id="su-phone" type="tel" placeholder="+91 XXXXX XXXXX" required />
+
+          <label for="su-email">Email</label>
+          <input id="su-email" type="email" placeholder="user@example.com" required />
+
+          <label for="su-password">Password</label>
+          <input id="su-password" type="password" placeholder="Create password" required />
+
+          <button type="submit" class="btn btn-primary">Sign up & continue</button>
+        </form>
+        <div class="helper">
+          Already have an account? <span onclick="if (typeof showScreen === 'function') showScreen('user-login-screen')">Login</span>
+        </div>
+        <p class="small">Demo only: Data stored in memory on server. For hackathon prototype.</p>
+      </div>
+    </div>
+
+    <div class="screen active" id="user-login-screen">
+      <h1>User login</h1>
+      <p class="subtitle">Login to book and track ambulances.</p>
+
+      <div class="card">
+        <form id="login-form">
+          <label for="li-email">Email</label>
+          <input id="li-email" type="email" placeholder="user@example.com" required />
+          <label for="li-password">Password</label>
+          <input id="li-password" type="password" placeholder="Enter password" required />
+          <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+
+        <!-- Google login -->
+        <!-- <div style="text-align:center; margin-top:0.8rem;">
+          <div id="g_id_onload"
+               data-client_id="578903313538-smpk5kjtf9frlcm9ecoknfdmffc2m1q8.apps.googleusercontent.com"
+               data-auto_prompt="false"
+               data-callback="handleGoogleCredentialResponse">
+          </div>
+          <div class="g_id_signin"
+               data-type="standard"
+               data-shape="pill"
+               data-theme="outline"
+               data-text="continue_with"
+               data-size="large"
+               data-logo_alignment="left">
+          </div>
+        </div> -->
+
+        <div id="login-status" class="status"></div>
+        <div class="helper">
+          New here? <span onclick="if (typeof showScreen === 'function') showScreen('user-signup-screen')">Create account</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="user-home-screen">
+      <h2>Book an ambulance</h2>
+      <p class="subtitle">Uber-style booking with live ambulance tracking & hospital alerts.</p>
+
+      <!-- User identity & quick SOS -->
+      <div class="card">
+        <div class="row">
+          <div>
+            <div style="font-size:0.8rem; color:var(--muted);">Logged in as</div>
+            <div id="home-username" style="font-size:0.95rem; font-weight:600;">User</div>
+            <div style="margin-top:0.3rem;">
+              <span class="badge-chip"><i class="fas fa-clock"></i> Under 1-min dispatch</span>
+              <span class="badge-chip"><i class="fas fa-map-marker-alt"></i> GPS-based pickup</span>
+            </div>
+          </div>
+          <button class="btn btn-outline" onclick="logoutUser()">Logout</button>
+        </div>
+
+        <div class="sos-row">
+          <div class="sos-btn" onclick="quickSelectEmergency('Road accident')">
+            <span><i class="fas fa-car-crash"></i></span> Accident
+          </div>
+          <div class="sos-btn" onclick="quickSelectEmergency('Cardiac / chest pain')">
+            <span><i class="fas fa-heartbeat"></i></span> Cardiac
+          </div>
+          <div class="sos-btn" onclick="quickSelectEmergency('Stroke / unconscious')">
+            <span><i class="fas fa-brain"></i></span> Stroke
+          </div>
+        </div>
+      </div>
+
+      <!-- Trip details -->
+      <div class="card">
+        <div style="font-size:0.9rem; font-weight:600; margin-bottom:0.4rem;">Trip details</div>
+
+        <label for="pickup">Pick-up location</label>
+        <div style="display:flex; gap:0.4rem; align-items:center; margin-bottom:0.7rem;">
+          <input id="pickup" type="text" placeholder="e.g., JNNCE main gate or using GPS" style="flex:1;" />
+          <button type="button" class="btn btn-outline" onclick="useGpsForPickup()" style="white-space:nowrap;">
+            <i class="fas fa-crosshairs"></i> Use GPS
+          </button>
+          <!-- <button type="button" class="btn btn-outline" onclick="startUserGpsTracking()" style="white-space:nowrap;">
+            <i class="fas fa-location-arrow"></i> Live track me
+          </button> -->
+        </div>
+
+        <label for="emergency-type">Emergency type</label>
+        <select id="emergency-type">
+          <option>Road accident</option>
+          <option>Cardiac / chest pain</option>
+          <option>Stroke / unconscious</option>
+          <option>Maternity / labour</option>
+          <option>General emergency</option>
+        </select>
+
+        <label for="hospital">Hospital preference</label>
+        <select id="hospital">
+          <option value="auto">Auto-select nearest hospital</option>
+          <option>City Multi-Speciality Hospital</option>
+          <option>Govt General Hospital</option>
+        </select>
+
+        <button class="btn btn-primary" onclick="startBooking()">Find nearest ambulance</button>
+        <div class="small">Backend simulation: matching logic, live driver & hospital views happen on this single demo.</div>
+      </div>
+
+      <!-- Live status & map -->
+      <div class="card">
+        <div class="row">
+          <div style="font-size:0.9rem; font-weight:600;">Live status</div>
+          <div id="eta-badge" class="badge-eta">No active booking</div>
+        </div>
+        <div id="map-box" class="map-box">
+          <div id="map" style="width:100%; height:100%;"></div>
+        </div>
+        <div id="booking-status" class="status"></div>
+      </div>
+    </div>
+
+    <!-- DRIVER SCREENS -->
+    <div class="screen" id="driver-signup-screen">
+      <h1>Driver signup</h1>
+      <p class="subtitle">Onboard your ambulance to receive emergency requests.</p>
+
+      <div class="card">
+        <form id="driver-signup-form">
+          <label for="ds-name">Driver name</label>
+          <input id="ds-name" type="text" placeholder="e.g., Rahul" required />
+
+          <label for="ds-email">Email</label>
+          <input id="ds-email" type="email" placeholder="driver@example.com" required />
+
+          <label for="ds-password">Password</label>
+          <input id="ds-password" type="password" placeholder="Create password" required />
+
+          <label for="ds-vehicle">Vehicle number</label>
+          <input id="ds-vehicle" type="text" placeholder="KA 01 AB 1234" required />
+
+          <label for="ds-location">Base location (landmark)</label>
+          <input id="ds-location" type="text" placeholder="Near JNNCE circle" required />
+
+          <button type="submit" class="btn btn-primary">Register as driver</button>
+        </form>
+        <div class="helper">
+          Already registered? <span onclick="if (typeof showScreen === 'function') showScreen('driver-login-screen')">Login</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="driver-login-screen">
+      <h1>Driver login</h1>
+      <p class="subtitle">Login to see and accept assigned ambulance trips.</p>
+
+      <div class="card">
+        <form id="driver-login-form">
+          <label for="driver-email">Driver email</label>
+          <input id="driver-email" type="email" placeholder="driver@example.com" required />
+          <label for="driver-password">Password</label>
+          <input id="driver-password" type="password" placeholder="Password" required />
+          <button type="submit" class="btn btn-primary">Login as driver</button>
+        </form>
+        <div id="driver-login-status" class="status"></div>
+        <div class="helper">
+          New driver? <span onclick="if (typeof showScreen === 'function') showScreen('driver-signup-screen')">Create driver account</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="driver-home-screen">
+      <h2>Driver dashboard</h2>
+      <p class="subtitle">Live emergency assignments with GPS sharing to user & hospital.</p>
+
+      <div class="card">
+        <div class="row">
+          <div>
+            <div style="font-size:0.8rem; color:var(--muted);">Driver</div>
+            <div id="driver-name" style="font-size:0.95rem; font-weight:600;">-</div>
+            <div id="driver-vehicle" style="font-size:0.78rem; color:var(--muted);"></div>
+            <div id="driver-location" style="font-size:0.78rem; color:var(--muted);"></div>
+          </div>
+          <button class="btn btn-outline" onclick="logoutDriver()">Logout</button>
+        </div>
+        <p class="small">GPS is shared with user & hospital once you login (demo only).</p>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div>
+            <div style="font-size:0.9rem; font-weight:600;">Live route map</div>
+            <div id="driver-map-status" class="small" style="margin-top:0.25rem; color:var(--muted);">Waiting for assigned trip</div>
+          </div>
+        </div>
+        <div id="driver-map-box" class="map-box">
+          <div id="driver-map" style="width:100%; height:100%;"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div>
+            <div style="font-size:0.9rem; font-weight:600;">Assigned bookings</div>
+            <div class="small">Pick a date to view older trips</div>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.25rem;">
+            <input
+              type="date"
+              id="driver-date-filter"
+              style="font-size:0.7rem; padding:0.2rem 0.4rem; border-radius:0.5rem; border:1px solid var(--border); background:#020617; color:var(--text);"
+            />
+            <button class="btn btn-outline" onclick="loadDriverBookings()">Refresh</button>
+          </div>
+        </div>
+        <div id="driver-bookings-list" class="small" style="margin-top:0.5rem;">
+          No bookings yet. Ask user to book from User tab.
+        </div>
+      </div>
+    </div>
+
+    <!-- HOSPITAL SCREENS -->
+    <div class="screen" id="hospital-signup-screen">
+      <h1>Hospital signup</h1>
+      <p class="subtitle">Register your hospital to get pre-alerts for emergencies.</p>
+
+      <div class="card">
+        <form id="hospital-signup-form">
+          <label for="hs-name">Hospital name</label>
+          <input id="hs-name" type="text" placeholder="City Multi-Speciality Hospital" required />
+
+          <label for="hs-email">Email</label>
+          <input id="hs-email" type="email" placeholder="hospital@example.com" required />
+
+          <label for="hs-password">Password</label>
+          <input id="hs-password" type="password" placeholder="Create password" required />
+
+          <label for="hs-location">Location / Area</label>
+          <input id="hs-location" type="text" placeholder="Shimoga city" required />
+
+          <button type="submit" class="btn btn-primary">Register hospital</button>
+        </form>
+        <div class="helper">
+          Already onboard? <span onclick="if (typeof showScreen === 'function') showScreen('hospital-login-screen')">Login</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="hospital-login-screen">
+      <h1>Hospital login</h1>
+      <p class="subtitle">Live ambulance pre-alerts with driver note & ETA.</p>
+
+      <div class="card">
+        <form id="hospital-login-form">
+          <label for="hospital-email">Hospital email</label>
+          <input id="hospital-email" type="email" placeholder="hospital@example.com" required />
+          <label for="hospital-password">Password</label>
+          <input id="hospital-password" type="password" placeholder="Password" required />
+          <button type="submit" class="btn btn-primary">Login as hospital</button>
+        </form>
+        <div id="hospital-login-status" class="status"></div>
+        <div class="helper">
+          New hospital? <span onclick="if (typeof showScreen === 'function') showScreen('hospital-signup-screen')">Create hospital account</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="hospital-home-screen">
+      <h2>Hospital dashboard</h2>
+      <p class="subtitle">Track cases heading to your hospital with driver notes.</p>
+
+      <div class="card">
+        <div class="row">
+          <div>
+            <div style="font-size:0.8rem; color:var(--muted);">Hospital</div>
+            <div id="hospital-name" style="font-size:0.95rem; font-weight:600;">-</div>
+            <div id="hospital-location" style="font-size:0.78rem; color:var(--muted);"></div>
+          </div>
+          <button class="btn btn-outline" onclick="logoutHospital()">Logout</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div>
+            <div style="font-size:0.9rem; font-weight:600;">Incoming cases</div>
+            <div class="small">Filter by date for previous emergencies</div>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.25rem;">
+            <input
+              type="date"
+              id="hospital-date-filter"
+              style="font-size:0.7rem; padding:0.2rem 0.4rem; border-radius:0.5rem; border:1px solid var(--border); background:#020617; color:var(--text);"
+            />
+            <button class="btn btn-outline" onclick="loadHospitalBookings()">Refresh</button>
+          </div>
+        </div>
+        <div id="hospital-bookings-list" class="small" style="margin-top:0.5rem;">
+          No bookings yet. Ask user to book from User tab.
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN SCREENS -->
+    <div class="screen" id="admin-login-screen">
+      <h1>Admin login</h1>
+      <p class="subtitle">Access the administrative dashboard.</p>
+
+      <div class="card">
+        <form id="admin-login-form">
+          <label for="admin-email">Admin email</label>
+          <input id="admin-email" type="email" placeholder="admin@ambulance.com" required />
+          <label for="admin-password">Password</label>
+          <input id="admin-password" type="password" placeholder="Password" required />
+          <button type="submit" class="btn btn-primary">Login as admin</button>
+        </form>
+        <div id="admin-login-status" class="status"></div>
+        <div class="helper">
+          New admin? Contact system administrator for access.
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="admin-home-screen">
+      <h2>Admin Dashboard</h2>
+      <p class="subtitle">Real-time analytics and control center.</p>
+
+      <div class="card">
+        <div class="row">
+          <div>
+            <div style="font-size:0.8rem; color:var(--muted);">Admin</div>
+            <div id="admin-name" style="font-size:0.95rem; font-weight:600;">-</div>
+          </div>
+          <button class="btn btn-outline" onclick="logoutAdmin()">Logout</button>
+        </div>
+      </div>
+
+      <!-- Summary Statistics -->
+      <div class="card">
+        <div style="font-size:0.9rem; font-weight:600;">Summary Statistics</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-top:0.5rem;">
+          <div style="background:#e0f2fe; padding:0.5rem; border-radius:0.35rem;">
+            <div style="font-size:0.7rem; color:#0369a1;">Total Requests</div>
+            <div id="stat-total-requests" style="font-size:1.2rem; font-weight:700; color:#0369a1;">-</div>
+          </div>
+          <div style="background:#dcfce7; padding:0.5rem; border-radius:0.35rem;">
+            <div style="font-size:0.7rem; color:#16a34a;">Accepted</div>
+            <div id="stat-accepted" style="font-size:1.2rem; font-weight:700; color:#16a34a;">-</div>
+          </div>
+          <div style="background:#fee2e2; padding:0.5rem; border-radius:0.35rem;">
+            <div style="font-size:0.7rem; color:#dc2626;">Rejected</div>
+            <div id="stat-rejected" style="font-size:1.2rem; font-weight:700; color:#dc2626;">-</div>
+          </div>
+          <div style="background:#fef3c7; padding:0.5rem; border-radius:0.35rem;">
+            <div style="font-size:0.7rem; color:#b45309;">Drivers</div>
+            <div id="stat-drivers" style="font-size:1.2rem; font-weight:700; color:#b45309;">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Requests Chart -->
+      <div class="card">
+        <div style="font-size:0.9rem; font-weight:600; margin-bottom:0.5rem;">Requests (Last 30 Days)</div>
+        <canvas id="daily-chart" style="max-height:250px;"></canvas>
+      </div>
+
+      <!-- Hospital Distribution -->
+      <div class="card">
+        <div style="font-size:0.9rem; font-weight:600; margin-bottom:0.5rem;">Hospital Distribution</div>
+        <canvas id="hospital-chart" style="max-height:250px;"></canvas>
+      </div>
+
+      <!-- Driver Performance -->
+      <div class="card">
+        <div style="font-size:0.9rem; font-weight:600; margin-bottom:0.5rem;">Driver Performance</div>
+        <div id="driver-performance" class="small" style="margin-top:0.5rem; max-height:300px; overflow-y:auto;">
+          Loading driver stats...
+        </div>
+      </div>
+
+      <!-- All Bookings List -->
+      <div class="card">
+        <div style="font-size:0.9rem; font-weight:600; margin-bottom:0.5rem;">Recent Bookings</div>
+        <div id="admin-bookings-list" class="small" style="margin-top:0.5rem;">
+          Loading bookings...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin="">
+  </script>
+
+  <!-- Leaflet Routing Machine JS -->
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+  <script>
+    // ---------- GLOBAL STATE ----------
+    let lastDriverMaxBookingId = 0;     // for driver "new booking" alert
+    let driverBookingsInitialized = false;
+    const API_BASE = window.location.origin;
+
+    let currentUser = null;
+    let currentDriver = null;
+    let currentHospital = null;
+    let currentAdmin = null;
+
+    // Define basic functions early
+    function showScreen(id) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+    }
+
+    function setProfileInitial(name) {
+      const p = document.getElementById("profileInitial");
+      if (!name) p.textContent = "👤";
+      else p.textContent = name.trim().charAt(0).toUpperCase();
+    }
+
+    function switchRole(role) {
+      alert("Switching to " + role);
+      document.querySelectorAll(".role-tab").forEach(t => t.classList.remove("active"));
+      document.getElementById(`tab-${role}`).classList.add("active");
+
+      if (role === "user") {
+        showScreen("user-login-screen");
+      } else if (role === "driver") {
+        showScreen("driver-login-screen");
+      } else if (role === "hospital") {
+        showScreen("hospital-login-screen");
+      } else if (role === "admin") {
+        showScreen("admin-login-screen");
+      }
+    }
+
+    function logoutUser() {
+      currentUser = null;
+      localStorage.removeItem("am_currentUser");
+      setProfileInitial(null);
+      showAllRoleTabs();
+      showScreen("user-login-screen");
+      document.getElementById("eta-badge").textContent = "No active booking";
+      document.getElementById("booking-status").textContent = "";
+      lastBookingStatus = null;
+      lastBookingId = null;
+      if (typeof stopUserGpsTracking === 'function') stopUserGpsTracking();
+      if (map) {
+        map.remove();
+        map = null;
+      }
+      if (gpsWatchId) {
+        navigator.geolocation.clearWatch(gpsWatchId);
+        gpsWatchId = null;
+      }
+    }
+
+    function quickSelectEmergency(type) {
+      const select = document.getElementById("emergency-type");
+      select.value = type;
+    }
+
+    function useGpsForPickup() {
+      if (!navigator.geolocation) {
+        alert("GPS not supported in this browser.");
+        return;
+      }
+
+      if (!isSecureContext()) {
+        alert(
+          "Mobile browsers require HTTPS for GPS. Use ngrok/HTTPS or set up a secure connection, then retry."
+        );
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          userPickupLat = pos.coords.latitude;
+          userPickupLng = pos.coords.longitude;
+          const pickupInput = document.getElementById("pickup");
+          pickupInput.value = "My current GPS location";
+          alert("Location captured from GPS ✅");
+
+          if (typeof initMap === 'function') initMap();
+          if (typeof updateUserMarker === 'function') updateUserMarker(userPickupLat, userPickupLng);
+          if (typeof startUserGpsTracking === 'function') startUserGpsTracking();
+        },
+        (err) => {
+          console.error(err);
+          alert("Unable to fetch GPS location. Please allow location permission and use HTTPS.");
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    function showAllRoleTabs() {
+      ["tab-user", "tab-driver", "tab-hospital", "tab-admin"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = "block";
+      });
+    }
+
+    function stopUserGpsTracking() {
+      if (userWatchId !== null) {
+        navigator.geolocation.clearWatch(userWatchId);
+        userWatchId = null;
+      }
+    }
+
+    function lockToRole(role) {
+      const userTab = document.getElementById("tab-user");
+      const driverTab = document.getElementById("tab-driver");
+      const hospitalTab = document.getElementById("tab-hospital");
+      const adminTab = document.getElementById("tab-admin");
+
+      if (role === "user") {
+        if (userTab) userTab.style.display = "block";
+        if (driverTab) driverTab.style.display = "none";
+        if (hospitalTab) hospitalTab.style.display = "none";
+        if (adminTab) adminTab.style.display = "none";
+      } else if (role === "driver") {
+        if (userTab) userTab.style.display = "none";
+        if (driverTab) driverTab.style.display = "block";
+        if (hospitalTab) hospitalTab.style.display = "none";
+        if (adminTab) adminTab.style.display = "none";
+      } else if (role === "hospital") {
+        if (userTab) userTab.style.display = "none";
+        if (driverTab) driverTab.style.display = "none";
+        if (hospitalTab) hospitalTab.style.display = "block";
+        if (adminTab) adminTab.style.display = "none";
+      } else if (role === "admin") {
+        if (userTab) userTab.style.display = "none";
+        if (driverTab) driverTab.style.display = "none";
+        if (hospitalTab) hospitalTab.style.display = "none";
+        if (adminTab) adminTab.style.display = "block";
+      } else {
+        showAllRoleTabs();
+      }
+    }
+
+    // Basic placeholder functions for onclick handlers
+    function startBooking() {
+      if (typeof startBookingReal === 'function') startBookingReal();
+      else alert("Please login first");
+    }
+
+    function logoutDriver() {
+      currentDriver = null;
+      localStorage.removeItem("am_currentDriver");
+      setProfileInitial(null);
+      showAllRoleTabs();
+      showScreen("driver-login-screen");
+      if (typeof stopDriverGps === 'function') stopDriverGps();
+    }
+
+    function loadDriverBookings() {
+      // Placeholder - real implementation later
+    }
+
+    function logoutHospital() {
+      currentHospital = null;
+      localStorage.removeItem("am_currentHospital");
+      setProfileInitial(null);
+      showAllRoleTabs();
+      showScreen("hospital-login-screen");
+    }
+
+    function loadHospitalBookings() {
+      // Placeholder - real implementation later
+    }
+
+    // Define Google callback early
+    async function handleGoogleCredentialResponse(response) {
+      try {
+        const token = response.credential;
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        const name = payload.name;
+        const email = payload.email;
+        const googleId = payload.sub;
+
+        const res = await fetch(`${API_BASE}/api/user/google-login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, googleId }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Google login failed");
+
+        currentUser = data.user;
+        setProfileInitial(currentUser.name);
+        document.getElementById("home-username").textContent = currentUser.name;
+        showScreen("user-home-screen");
+        initMap();
+        document.getElementById("eta-badge").textContent = "No active booking";
+        document.getElementById("booking-status").textContent = "Login via Google successful.";
+        lastBookingStatus = null;
+        lastBookingId = null;
+      } catch (err) {
+        const statusEl = document.getElementById("login-status");
+        if (statusEl) {
+          statusEl.textContent = err.message;
+          statusEl.className = "status warning";
+        }
+      }
+    }
+
+    let lastBookingStatus = null;      // for user alert
+    let lastBookingId = null;
+    let userPickupLat = null;
+    let userPickupLng = null;
+
+    let driverMap = null;
+    let driverPickupMarker = null;
+    let driverHospitalMarker = null;
+    let driverRouteMarker = null;
+    let driverMapBoundsInitialized = false;
+    let driverRefreshIntervalId = null;
+    let driverRouteControl = null;
+
+    let mapBoundsInitialized = false;
+
+    // ---------- Distance + ETA helpers ----------
+    function toRad(v) {
+      return (v * Math.PI) / 180;
+    }
+
+    function distanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371; // km
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) *
+          Math.cos(toRad(lat2)) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function estimateEtaMinutes(km) {
+      if (!km || !isFinite(km)) return 5;
+      const minutes = (km / 25) * 60; // city speed ~25km/h
+      return Math.max(2, Math.round(minutes));
+    }
+
+    function isSecureContext() {
+      return window.isSecureContext || window.location.protocol === "https:";
+    }
+
+    // ---------- Geocoding: recognize places -> lat/lng ----------
+    async function geocodeAddress(address) {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+      const res = await fetch(url, {
+        headers: {
+          "Accept-Language": "en"
+        }
+      });
+      const data = await res.json();
+      if (!data || !data.length) {
+        throw new Error("Unable to find this place on map. Try a clearer landmark.");
+      }
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+      };
+    }
+
+    // ---------- AI TRIAGE ENGINE ----------
+
+    let map;
+    let driverMarker;
+    let pickupMarker;
+    let hospitalMarker;
+    let userMarker;
+    let routeControl;
+    let gpsWatchId = null;
+    let userWatchId = null;
+
+    function initMap() {
+      if (map) return;
+      const mapEl = document.getElementById("map");
+      if (!mapEl) return;
+
+      map = L.map("map").setView([13.9312, 75.5670], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
+    }
+
+    function initDriverMap() {
+      if (driverMap) return;
+      const mapEl = document.getElementById("driver-map");
+      if (!mapEl) return;
+
+      driverMap = L.map("driver-map").setView([13.9312, 75.5670], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(driverMap);
+    }
+
+    function updateUserMarker(lat, lng) {
+      if (!map) return;
+      if (userMarker) {
+        userMarker.setLatLng([lat, lng]);
+      } else {
+        userMarker = L.circleMarker([lat, lng], {
+          radius: 8,
+          color: '#3b82f6',
+          fillColor: '#60a5fa',
+          fillOpacity: 0.9,
+          weight: 2,
+        }).addTo(map).bindPopup('You (live GPS)');
+      }
+      map.setView([lat, lng], 15);
+    }
+
+    function startUserGpsTracking() {
+      if (!navigator.geolocation) return;
+      if (userWatchId) return;
+
+      userWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          updateUserMarker(latitude, longitude);
+        },
+        (err) => {
+          console.error('User watch position failed', err);
+        },
+        { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+      );
+    }
+
+    // ---------- USER SIGNUP ----------
+    document.getElementById("signup-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("su-name").value.trim();
+      const phone = document.getElementById("su-phone").value.trim();
+      const email = document.getElementById("su-email").value.trim();
+      const password = document.getElementById("su-password").value.trim();
+
+      try {
+        const res = await fetch(`${API_BASE}/api/user/signup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, phone, email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Signup failed");
+
+        alert("Signup successful! Please login.");
+        document.getElementById("li-email").value = email;
+        showScreen("user-login-screen");
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    // ---------- USER LOGIN ----------
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("li-email").value.trim();
+      const password = document.getElementById("li-password").value.trim();
+      const statusEl = document.getElementById("login-status");
+
+      console.log("User login attempt:", email);
+      try {
+        const res = await fetch(`${API_BASE}/api/user/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        console.log("Login response:", res.status, data);
+        if (!res.ok) throw new Error(data.message || "Login failed");
+
+        currentUser = data.user;
+        localStorage.setItem("am_currentUser", JSON.stringify(currentUser));
+
+        setProfileInitial(currentUser.name);
+        document.getElementById("home-username").textContent = currentUser.name;
+        statusEl.textContent = "";
+        lockToRole("user");
+        showScreen("user-home-screen");
+
+        initMap();
+        document.getElementById("eta-badge").textContent = "No active booking";
+        document.getElementById("booking-status").textContent = "";
+        lastBookingStatus = null;
+        lastBookingId = null;
+        refreshUserView();
+      } catch (err) {
+        console.error("Login error:", err);
+        statusEl.textContent = err.message;
+        statusEl.className = "status warning";
+      }
+    });
+
+    // ---------- BOOKING FLOW WITH GEOCODING ----------
+    async function startBooking() {
+      if (!currentUser) {
+        alert("Login first as User.");
+        showScreen("user-login-screen");
+        return;
+      }
+
+      const pickup = document.getElementById("pickup").value.trim();
+      const emergencyType = document.getElementById("emergency-type").value;
+      const hospitalPref = document.getElementById("hospital").value;
+
+      if (!pickup) {
+        alert("Enter pickup location or use GPS.");
+        return;
+      }
+
+      // Decide lat/lng to send:
+      let pickupLatToSend = userPickupLat;
+      let pickupLngToSend = userPickupLng;
+
+      // If user didn't use GPS, try geocoding the typed address:
+      if ((!pickupLatToSend || !pickupLngToSend) && pickup) {
+        try {
+          const coords = await geocodeAddress(pickup);
+          pickupLatToSend = coords.lat;
+          pickupLngToSend = coords.lng;
+        } catch (err) {
+          console.warn(err);
+          alert(err.message || "Could not convert address to location.");
+        }
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/bookings`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userEmail: currentUser.email,
+            userName: currentUser.name,
+            userPhone: currentUser.phone,
+            pickup,
+            emergencyType,
+            hospitalPref,
+            pickupLat: pickupLatToSend,
+            pickupLng: pickupLngToSend,
+          }),
+        });
+
+        const booking = await res.json();
+        if (!res.ok) throw new Error(booking.message || "Booking failed");
+
+        const etaBadge = document.getElementById("eta-badge");
+        const status = document.getElementById("booking-status");
+
+        etaBadge.textContent = booking.eta + " min away (waiting for driver response)";
+        status.innerHTML =
+          "✅ Booking request sent.<br>" +
+          "Waiting for a driver to accept your emergency request." +
+          "<br>🏥 Hospital: <b>" + booking.hospitalName + "</b>" +
+          "<br>Status: <b>pending</b>";
+        status.className = "status";
+
+        lastBookingId = booking.id;
+        lastBookingStatus = booking.status; // 'pending'
+        mapBoundsInitialized = false;
+        
+        // Start live GPS tracking for user location
+        startUserGpsTracking();
+        
+        updateMapForBooking(booking);
+      } catch (err) {
+        const userMessage =
+          err.message === "Failed to fetch"
+            ? "Cannot reach backend. Make sure node server is running and ngrok is active (https URL)."
+            : err.message;
+        alert(userMessage);
+      }
+    }
+
+    async function checkApiHealth() {
+      try {
+        const res = await fetch(`${API_BASE}/api/health`);
+        if (!res.ok) throw new Error("API health check failed");
+        const data = await res.json();
+        console.log("API healthy", data);
+      } catch (err) {
+        console.warn("API health check failed", err.message);
+        alert(
+          "Backend cannot be reached from this device. Start backend and ngrok, then reload."
+        );
+      }
+    }
+
+    async function refreshUserView() {
+      if (!currentUser) return;
+
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/bookings/by-user?email=${encodeURIComponent(currentUser.email)}`
+        );
+        const list = await res.json();
+        if (!res.ok) throw new Error("Failed to load bookings");
+        if (!list.length) return;
+
+        const latest = list[0];
+        const etaBadge = document.getElementById("eta-badge");
+        const status = document.getElementById("booking-status");
+        const isNewBooking = latest.id !== lastBookingId;
+
+        // Only show booking info if it's a recent booking (within last 10 minutes)
+        const bookingTime = new Date(latest.createdAt);
+        const now = new Date();
+        const timeDiff = (now - bookingTime) / (1000 * 60); // minutes
+        const isRecentBooking = timeDiff < 10; // within last 10 minutes
+
+        if (!isRecentBooking && !lastBookingId) {
+          // Old booking and no active session booking, don't show
+          etaBadge.textContent = "No active booking";
+          status.innerHTML = "";
+          status.className = "status";
+          return;
+        }
+
+        // Show alert ONLY if same booking changed from pending -> accepted
+        if (
+          lastBookingId === latest.id &&
+          lastBookingStatus === "pending" &&
+          latest.status === "accepted"
+        ) {
+          alert("✅ Driver has accepted your request and is on the way!");
+        }
+
+        if (isNewBooking) {
+          mapBoundsInitialized = false;
+        }
+
+        lastBookingId = latest.id;
+        lastBookingStatus = latest.status;
+
+        let text = "<b>Booking status:</b> <br>" +
+          "🏥 Hospital: <b>" + latest.hospitalName + "</b>" +
+          "<br>Status: <b>" + latest.status + "</b>";
+
+        // Recalculate ETA based on live GPS
+        let dynamicEta = latest.eta;
+        if (
+          latest.pickupLat && latest.pickupLng &&
+          latest.driverLat && latest.driverLng
+        ) {
+          const dist = distanceKm(
+            latest.pickupLat,
+            latest.pickupLng,
+            latest.driverLat,
+            latest.driverLng
+          );
+          dynamicEta = estimateEtaMinutes(dist);
+        }
+
+        // Handle rejection statuses
+        if (latest.status === "driver-rejected") {
+          etaBadge.textContent = "Request rejected";
+          text += "<br><span style='color:#ef4444; font-weight:bold;'>❌ Driver has rejected your request.</span>";
+        } else if (latest.status === "hospital-rejected") {
+          etaBadge.textContent = "Request rejected";
+          text += "<br><span style='color:#ef4444; font-weight:bold;'>❌ Hospital has rejected this case.</span>";
+        } else if (latest.status === "user-rejected") {
+          etaBadge.textContent = "Request cancelled";
+          text += "<br><span style='color:#f59e0b;'>You have cancelled this request.</span>";
+        } else if (latest.status === "pending") {
+          etaBadge.textContent =
+            dynamicEta + " min away (waiting for driver response)";
+          text += "<br><span style='color:#f59e0b;'>Waiting for a driver to accept your request.</span>";
+        } else if (latest.status === "accepted") {
+          etaBadge.textContent =
+            dynamicEta + " min away (driver on the way)";
+          text += "<br>🚑 Driver: <b>" + latest.driverName +
+                  "</b> (" + latest.driverVehicle + ", " + latest.driverLocation + ")";
+          text += "<br><span style='color:#22c55e;'>Driver has accepted and is on the way.</span>";
+          if (latest.driverNote) {
+            text += "<br><b>Driver note to hospital:</b> " + latest.driverNote;
+          }
+        }
+
+        const userGpsText = (latest.pickupLat && latest.pickupLng)
+          ? `(${latest.pickupLat.toFixed(5)}, ${latest.pickupLng.toFixed(5)})`
+          : "not from GPS";
+
+        const driverGpsText = latest.status === "accepted"
+          ? (latest.driverLat && latest.driverLng)
+              ? `(${latest.driverLat.toFixed(5)}, ${latest.driverLng.toFixed(5)})`
+              : "no live GPS yet"
+          : "hidden until driver accepts";
+
+        text +=
+          "<br><br><b>📍 User location:</b> " + userGpsText +
+          "<br><b>🚑 Ambulance location:</b> " + driverGpsText;
+
+        status.innerHTML = text;
+        
+        // Add reject button for accepted bookings only
+        if (latest.status === "accepted") {
+          const btnDiv = document.createElement("div");
+          btnDiv.style.marginTop = "0.75rem";
+          
+          const rejectBtn = document.createElement("button");
+          rejectBtn.className = "btn";
+          rejectBtn.style.width = "100%";
+          rejectBtn.style.backgroundColor = "var(--danger)";
+          rejectBtn.style.color = "white";
+          rejectBtn.textContent = "Reject Driver Arrival";
+
+          rejectBtn.onclick = async () => {
+            if (confirm("Are you sure you want to reject this driver's arrival?")) {
+              try {
+                const res = await fetch(`${API_BASE}/api/bookings/${latest.id}/user-reject`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    userEmail: currentUser.email,
+                    rejectionReason: "User rejected"
+                  }),
+                });
+                const updated = await res.json();
+                if (!res.ok) throw new Error(updated.message || "Failed to reject");
+
+                alert("Driver rejection sent. A new driver will be assigned.");
+                refreshUserView();
+              } catch (err) {
+                alert(err.message);
+              }
+            }
+          };
+
+          btnDiv.appendChild(rejectBtn);
+          status.appendChild(btnDiv);
+        }
+        
+        status.className = latest.status === "driver-rejected" || latest.status === "hospital-rejected" ? "status warning" : "status success";
+
+        updateMapForBooking(latest);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function updateMapForBooking(booking) {
+      initMap();
+      if (!map) return;
+
+      const defaultPickup = [13.9312, 75.5670];
+      const defaultHospital = [13.9350, 75.5685];
+      const pickupLatLng =
+        booking.pickupLat && booking.pickupLng
+          ? [booking.pickupLat, booking.pickupLng]
+          : defaultPickup;
+      const hospitalLatLng =
+        booking.hospitalLat && booking.hospitalLng
+          ? [booking.hospitalLat, booking.hospitalLng]
+          : defaultHospital;
+      const showDriverMarker = booking.status === "accepted" && booking.driverLat && booking.driverLng;
+      const driverLatLng = showDriverMarker ? [booking.driverLat, booking.driverLng] : null;
+
+      // Update user marker (pickup location)
+      if (!pickupMarker) {
+        pickupMarker = L.marker(pickupLatLng, {
+          icon: L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+          })
+        }).addTo(map).bindTooltip("📍 Your Location: " + booking.pickup, { permanent: false, direction: 'top' });
+      } else {
+        pickupMarker.setLatLng(pickupLatLng);
+      }
+
+      // Update hospital marker
+      if (!hospitalMarker) {
+        hospitalMarker = L.marker(hospitalLatLng, {
+          icon: L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+          })
+        }).addTo(map).bindTooltip("🏥 Hospital: " + booking.hospitalName, { permanent: false, direction: 'top' });
+      } else {
+        hospitalMarker.setLatLng(hospitalLatLng);
+      }
+
+      // Update driver marker
+      if (showDriverMarker) {
+        if (!driverMarker) {
+          driverMarker = L.marker(driverLatLng, {
+            icon: L.icon({
+              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+              iconSize: [25, 41],
+              iconAnchor: [12, 41],
+              popupAnchor: [1, -34],
+              shadowSize: [41, 41]
+            })
+          }).addTo(map).bindTooltip("🚑 Driver: " + booking.driverName, { permanent: false, direction: 'top' });
+        } else {
+          driverMarker.setLatLng(driverLatLng);
+        }
+      } else if (driverMarker) {
+        map.removeLayer(driverMarker);
+        driverMarker = null;
+      }
+
+      // Show route from driver to user only when both have GPS and driver accepted
+      if (showDriverMarker && driverLatLng) {
+        if (routeControl) {
+          map.removeControl(routeControl);
+          routeControl = null;
+        }
+
+        // First show direct line as fallback
+        if (!window.userSimpleLine) {
+          window.userSimpleLine = L.polyline([driverLatLng, pickupLatLng], {
+            color: '#22c55e',
+            weight: 4,
+            opacity: 0.6,
+            dashArray: '5, 5'
+          }).addTo(map);
+        } else {
+          window.userSimpleLine.setLatLngs([driverLatLng, pickupLatLng]);
+        }
+
+        // Then try to draw optimal route if routing library is available
+        if (typeof L.Routing !== 'undefined') {
+          try {
+            routeControl = L.Routing.control({
+              waypoints: [
+                L.latLng(driverLatLng[0], driverLatLng[1]),
+                L.latLng(pickupLatLng[0], pickupLatLng[1])
+              ],
+              routeWhileDragging: false,
+              createMarker: function() { return null; },
+              lineOptions: {
+                styles: [{ color: '#22c55e', weight: 5, opacity: 0.85 }]
+              },
+              router: L.Routing.osrmv1({
+                serviceUrl: 'https://router.project-osrm.org/route/v1'
+              })
+            }).addTo(map);
+            // Remove fallback line once optimal route is rendered
+            setTimeout(() => {
+              if (window.userSimpleLine && map.hasLayer(window.userSimpleLine)) {
+                map.removeLayer(window.userSimpleLine);
+                window.userSimpleLine = null;
+              }
+            }, 1000);
+          } catch (err) {
+            console.warn('Route rendering attempted, fallback line shown:', err);
+          }
+        }
+      } else if (routeControl) {
+        map.removeControl(routeControl);
+        routeControl = null;
+        if (window.userSimpleLine) {
+          map.removeLayer(window.userSimpleLine);
+          window.userSimpleLine = null;
+        }
+      }
+
+      if (!mapBoundsInitialized) {
+        const groupMarkers = showDriverMarker
+          ? [pickupMarker, hospitalMarker, driverMarker].filter(Boolean)
+          : [pickupMarker, hospitalMarker];
+        const group = L.featureGroup(groupMarkers);
+        map.fitBounds(group.getBounds().pad(0.3));
+        mapBoundsInitialized = true;
+      } else if (showDriverMarker && driverLatLng) {
+        map.panTo(driverLatLng, { animate: true, duration: 0.8 });
+      }
+    }
+
+    function updateDriverMapForBooking(booking) {
+      initDriverMap();
+      if (!driverMap) return;
+      driverMap.invalidateSize();
+      const statusEl = document.getElementById("driver-map-status");
+      
+      if (!booking) {
+        if (statusEl) statusEl.textContent = "No active booking yet.";
+        // Clear all markers when no booking
+        if (driverPickupMarker) {
+          driverMap.removeLayer(driverPickupMarker);
+          driverPickupMarker = null;
+        }
+        if (driverHospitalMarker) {
+          driverMap.removeLayer(driverHospitalMarker);
+          driverHospitalMarker = null;
+        }
+        if (driverRouteMarker) {
+          driverMap.removeLayer(driverRouteMarker);
+          driverRouteMarker = null;
+        }
+        return;
+      }
+
+      // Don't show patient location for rejected or pending bookings
+      if (booking.status === "pending" || booking.status === "driver-rejected" || booking.status === "user-rejected" || booking.status === "hospital-rejected") {
+        if (statusEl) {
+          statusEl.innerHTML = booking.status === "pending" 
+            ? "<b>⏳ Location Hidden</b> - Accept the booking to see patient location"
+            : "<b>❌ Booking Rejected</b> - " + 
+              (booking.status === "driver-rejected" ? "You rejected this request." :
+               booking.status === "user-rejected" ? "User rejected this request." :
+               "Hospital rejected this request.");
+        }
+        // Remove patient location marker
+        if (driverPickupMarker) {
+          driverMap.removeLayer(driverPickupMarker);
+          driverPickupMarker = null;
+        }
+        return;
+      }
+
+      const defaultPickup = [13.9312, 75.5670];
+      const defaultHospital = [13.9350, 75.5685];
+      const pickupLatLng = booking.pickupLat && booking.pickupLng
+        ? [booking.pickupLat, booking.pickupLng]
+        : defaultPickup;
+      const hospitalLatLng = booking.hospitalLat && booking.hospitalLng
+        ? [booking.hospitalLat, booking.hospitalLng]
+        : defaultHospital;
+      const hasDriverGps = booking.driverLat && booking.driverLng;
+      const driverLatLng = hasDriverGps
+        ? [booking.driverLat, booking.driverLng]
+        : null;
+
+      // Patient/User location marker - only show when accepted
+      if (!driverPickupMarker) {
+        driverPickupMarker = L.marker(pickupLatLng, {
+          icon: L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+          })
+        }).addTo(driverMap).bindTooltip("📍 Patient: " + booking.pickup, { permanent: false, direction: 'top' });
+      } else {
+        driverPickupMarker.setLatLng(pickupLatLng);
+        driverPickupMarker.setTooltipContent("📍 Patient: " + booking.pickup);
+      }
+
+      // Hospital marker
+      if (!driverHospitalMarker) {
+        driverHospitalMarker = L.marker(hospitalLatLng, {
+          icon: L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+          })
+        }).addTo(driverMap).bindTooltip("🏥 Hospital: " + booking.hospitalName, { permanent: false, direction: 'top' });
+      } else {
+        driverHospitalMarker.setLatLng(hospitalLatLng);
+        driverHospitalMarker.setTooltipContent("🏥 Hospital: " + booking.hospitalName);
+      }
+
+      // Driver location marker
+      const driverPopupText = hasDriverGps
+        ? "🚑 You (Driver): " + booking.driverName
+        : "🚑 You (Driver): " + booking.driverName + " (GPS locating...)";
+
+      if (hasDriverGps) {
+        if (!driverRouteMarker) {
+          driverRouteMarker = L.marker(driverLatLng, {
+            icon: L.icon({
+              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+              iconSize: [25, 41],
+              iconAnchor: [12, 41],
+              popupAnchor: [1, -34],
+              shadowSize: [41, 41]
+            })
+          }).addTo(driverMap).bindTooltip(driverPopupText, { permanent: false, direction: 'top' });
+        } else {
+          driverRouteMarker.setLatLng(driverLatLng);
+          driverRouteMarker.setTooltipContent(driverPopupText);
+        }
+      } else if (driverRouteMarker) {
+        driverMap.removeLayer(driverRouteMarker);
+        driverRouteMarker = null;
+      }
+
+      // Draw route from driver to patient only when driver GPS is available and booking is accepted
+      if (hasDriverGps && booking.status === "accepted") {
+        if (driverRouteControl) {
+          driverMap.removeControl(driverRouteControl);
+          driverRouteControl = null;
+        }
+        
+        // Show fallback direct line immediately while route loads
+        if (!window.driverSimpleLine) {
+          window.driverSimpleLine = L.polyline([driverLatLng, pickupLatLng], {
+            color: '#22c55e',
+            weight: 4,
+            opacity: 0.6,
+            dashArray: '5, 5'
+          }).addTo(driverMap);
+        } else {
+          window.driverSimpleLine.setLatLngs([driverLatLng, pickupLatLng]);
+        }
+        
+        if (typeof L.Routing !== 'undefined') {
+          try {
+            driverRouteControl = L.Routing.control({
+              waypoints: [
+                L.latLng(driverLatLng[0], driverLatLng[1]),
+                L.latLng(pickupLatLng[0], pickupLatLng[1])
+              ],
+              routeWhileDragging: false,
+              createMarker: function() { return null; },
+              lineOptions: {
+                styles: [{ color: '#22c55e', weight: 5, opacity: 0.85 }]
+              },
+              router: L.Routing.osrmv1({
+                serviceUrl: 'https://router.project-osrm.org/route/v1'
+              })
+            }).addTo(driverMap);
+            setTimeout(() => {
+              if (window.driverSimpleLine && driverMap.hasLayer(window.driverSimpleLine)) {
+                driverMap.removeLayer(window.driverSimpleLine);
+                window.driverSimpleLine = null;
+              }
+            }, 1000);
+          } catch (err) {
+            console.warn('Route rendering attempted, fallback line shown:', err);
+          }
+        }
+      } else {
+        // No valid driver GPS or route unavailable - clear incorrect path markers
+        if (driverRouteControl) {
+          driverMap.removeControl(driverRouteControl);
+          driverRouteControl = null;
+        }
+        if (window.driverSimpleLine) {
+          driverMap.removeLayer(window.driverSimpleLine);
+          window.driverSimpleLine = null;
+        }
+      }
+
+      // Fit bounds to show all markers and route
+      if (!driverMapBoundsInitialized || booking.status === "accepted") {
+        const markersToShow = [driverPickupMarker, driverHospitalMarker, driverRouteMarker].filter(Boolean);
+        if (markersToShow.length > 0) {
+          const group = L.featureGroup(markersToShow);
+          try {
+            driverMap.fitBounds(group.getBounds().pad(0.35), { maxZoom: 15 });
+          } catch (err) {
+            console.warn('Bounds fit error:', err);
+            driverMap.setView([13.9312, 75.5670], 13);
+          }
+        }
+        driverMapBoundsInitialized = true;
+      } else if (hasDriverGps && booking.status === "accepted") {
+        // Smoothly pan to driver location while maintaining view of route
+        driverMap.panTo(driverLatLng, { animate: true, duration: 0.5 });
+      }
+
+      if (statusEl) {
+        statusEl.innerHTML = booking.status === "accepted"
+          ? "<b>📍 Shortest Path</b> shown from your location (🟢 green) to patient (🔵 blue). Hospital in 🔴 red."
+          : "<b>📍 Patient Location</b> marked in blue. Waiting for you to accept the booking...";
+      }
+    }
+
+    function updateDriverMapWithAllBookings(bookings) {
+      initDriverMap();
+      if (!driverMap) return;
+      driverMap.invalidateSize();
+      const statusEl = document.getElementById("driver-map-status");
+
+      // Clear all existing markers from previous bookings
+      if (window.driverPendingMarkers) {
+        window.driverPendingMarkers.forEach(marker => {
+          if (driverMap.hasLayer(marker)) driverMap.removeLayer(marker);
+        });
+        window.driverPendingMarkers = [];
+      }
+
+      if (!bookings || !bookings.length) {
+        if (statusEl) statusEl.textContent = "No active bookings yet.";
+        if (driverPickupMarker) {
+          driverMap.removeLayer(driverPickupMarker);
+          driverPickupMarker = null;
+        }
+        if (driverHospitalMarker) {
+          driverMap.removeLayer(driverHospitalMarker);
+          driverHospitalMarker = null;
+        }
+        return;
+      }
+
+      // Find accepted booking (if any)
+      const acceptedBooking = bookings.find(b => b.status === "accepted");
+      const pendingBookings = bookings.filter(b => b.status === "pending");
+
+      // Initialize pending markers array if needed
+      if (!window.driverPendingMarkers) window.driverPendingMarkers = [];
+
+      // Show all pending request locations as light markers
+      pendingBookings.forEach(booking => {
+        const pickupLatLng = (booking.pickupLat && booking.pickupLng)
+          ? [booking.pickupLat, booking.pickupLng]
+          : [13.9312, 75.5670];
+
+        const pendingMarker = L.marker(pickupLatLng, {
+          icon: L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41],
+            opacity: 0.7
+          })
+        }).addTo(driverMap).bindPopup(`<b>Pending Request</b><br>${booking.emergencyType}<br>User: ${booking.userName}`);
+
+        window.driverPendingMarkers.push(pendingMarker);
+      });
+
+      // If there's an accepted booking, show it with full details
+      if (acceptedBooking) {
+        const pickupLatLng = (acceptedBooking.pickupLat && acceptedBooking.pickupLng)
+          ? [acceptedBooking.pickupLat, acceptedBooking.pickupLng]
+          : [13.9312, 75.5670];
+        
+        const hospitalLatLng = (acceptedBooking.hospitalLat && acceptedBooking.hospitalLng)
+          ? [acceptedBooking.hospitalLat, acceptedBooking.hospitalLng]
+          : [13.9350, 75.5685];
+
+        const hasDriverGps = acceptedBooking.driverLat && acceptedBooking.driverLng;
+        const driverLatLng = hasDriverGps ? [acceptedBooking.driverLat, acceptedBooking.driverLng] : null;
+
+        // Patient marker - blue
+        if (!driverPickupMarker) {
+          driverPickupMarker = L.marker(pickupLatLng, {
+            icon: L.icon({
+              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+              iconSize: [25, 41],
+              iconAnchor: [12, 41],
+              popupAnchor: [1, -34],
+              shadowSize: [41, 41]
+            })
+          }).addTo(driverMap).bindTooltip("📍 Patient: " + acceptedBooking.pickup, { permanent: false, direction: 'top' });
+        } else {
+          driverPickupMarker.setLatLng(pickupLatLng);
+          driverPickupMarker.setTooltipContent("📍 Patient: " + acceptedBooking.pickup);
+        }
+
+        // Hospital marker - red
+        if (!driverHospitalMarker) {
+          driverHospitalMarker = L.marker(hospitalLatLng, {
+            icon: L.icon({
+              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+              iconSize: [25, 41],
+              iconAnchor: [12, 41],
+              popupAnchor: [1, -34],
+              shadowSize: [41, 41]
+            })
+          }).addTo(driverMap).bindTooltip("🏥 Hospital: " + acceptedBooking.hospitalName, { permanent: false, direction: 'top' });
+        } else {
+          driverHospitalMarker.setLatLng(hospitalLatLng);
+          driverHospitalMarker.setTooltipContent("🏥 Hospital: " + acceptedBooking.hospitalName);
+        }
+
+        // Driver marker - green (if GPS available)
+        const driverPopupText = hasDriverGps
+          ? "🚑 You (Driver): " + acceptedBooking.driverName
+          : "🚑 You (Driver): " + acceptedBooking.driverName + " (GPS locating...)";
+
+        if (hasDriverGps) {
+          if (!driverRouteMarker) {
+            driverRouteMarker = L.marker(driverLatLng, {
+              icon: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+              })
+            }).addTo(driverMap).bindTooltip(driverPopupText, { permanent: false, direction: 'top' });
+          } else {
+            driverRouteMarker.setLatLng(driverLatLng);
+            driverRouteMarker.setTooltipContent(driverPopupText);
+          }
+        } else if (driverRouteMarker) {
+          driverMap.removeLayer(driverRouteMarker);
+          driverRouteMarker = null;
+        }
+
+        // Draw route from driver to patient only when driver GPS is available
+        if (hasDriverGps) {
+          if (driverRouteControl) {
+            driverMap.removeControl(driverRouteControl);
+            driverRouteControl = null;
+          }
+          
+          // Show fallback direct line immediately while route loads
+          if (!window.driverSimpleLine) {
+            window.driverSimpleLine = L.polyline([driverLatLng, pickupLatLng], {
+              color: '#22c55e',
+              weight: 4,
+              opacity: 0.6,
+              dashArray: '5, 5'
+            }).addTo(driverMap);
+          } else {
+            window.driverSimpleLine.setLatLngs([driverLatLng, pickupLatLng]);
+          }
+          
+          if (typeof L.Routing !== 'undefined') {
+            try {
+              driverRouteControl = L.Routing.control({
+                waypoints: [
+                  L.latLng(driverLatLng[0], driverLatLng[1]),
+                  L.latLng(pickupLatLng[0], pickupLatLng[1])
+                ],
+                routeWhileDragging: false,
+                createMarker: function() { return null; },
+                lineOptions: {
+                  styles: [{ color: '#22c55e', weight: 5, opacity: 0.85 }]
+                },
+                router: L.Routing.osrmv1({
+                  serviceUrl: 'https://router.project-osrm.org/route/v1'
+                })
+              }).addTo(driverMap);
+              setTimeout(() => {
+                if (window.driverSimpleLine && driverMap.hasLayer(window.driverSimpleLine)) {
+                  driverMap.removeLayer(window.driverSimpleLine);
+                  window.driverSimpleLine = null;
+                }
+              }, 1000);
+            } catch (err) {
+              console.warn('Route rendering attempted, fallback line shown:', err);
+            }
+          }
+        } else {
+          if (driverRouteControl) {
+            driverMap.removeControl(driverRouteControl);
+            driverRouteControl = null;
+          }
+          if (window.driverSimpleLine) {
+            driverMap.removeLayer(window.driverSimpleLine);
+            window.driverSimpleLine = null;
+          }
+        }
+
+        // Fit bounds to show all markers
+        const markersToShow = [driverPickupMarker, driverHospitalMarker, driverRouteMarker].filter(Boolean);
+        if (markersToShow.length > 0) {
+          const group = L.featureGroup(markersToShow);
+          try {
+            driverMap.fitBounds(group.getBounds().pad(0.35), { maxZoom: 15 });
+          } catch (err) {
+            console.warn('Bounds fit error:', err);
+            driverMap.setView([13.9312, 75.5670], 13);
+          }
+        }
+
+        if (statusEl) {
+          statusEl.innerHTML = "<b>📍 Shortest Path</b> shown from your location (🟢 green) to patient (🔵 blue). Hospital in 🔴 red.<br><b>🟡 Yellow markers</b> show other pending requests.";
+        }
+      } else {
+        // Only pending requests, no accepted booking
+        if (statusEl) {
+          statusEl.innerHTML = `<b>🟡 Pending Requests (${pendingBookings.length})</b> - Click a request to view details and accept it.`;
+        }
+
+        // Show all pending markers
+        if (window.driverPendingMarkers.length > 0) {
+          const group = L.featureGroup(window.driverPendingMarkers);
+          try {
+            driverMap.fitBounds(group.getBounds().pad(0.35), { maxZoom: 13 });
+          } catch (err) {
+            console.warn('Bounds fit error:', err);
+            driverMap.setView([13.9312, 75.5670], 12);
+          }
+        } else {
+          driverMap.setView([13.9312, 75.5670], 12);
+        }
+
+        // Remove accepted booking markers if switching back to pending only
+        if (driverPickupMarker && driverMap.hasLayer(driverPickupMarker)) {
+          driverMap.removeLayer(driverPickupMarker);
+          driverPickupMarker = null;
+        }
+        if (driverHospitalMarker && driverMap.hasLayer(driverHospitalMarker)) {
+          driverMap.removeLayer(driverHospitalMarker);
+          driverHospitalMarker = null;
+        }
+        if (driverRouteMarker && driverMap.hasLayer(driverRouteMarker)) {
+          driverMap.removeLayer(driverRouteMarker);
+          driverRouteMarker = null;
+        }
+      }
+    }
+
+    function startDriverRefresh() {
+      if (driverRefreshIntervalId !== null) return;
+      driverRefreshIntervalId = setInterval(() => {
+        if (currentDriver) loadDriverBookings();
+      }, 1000);
+    }
+
+    function stopDriverRefresh() {
+      if (driverRefreshIntervalId !== null) {
+        clearInterval(driverRefreshIntervalId);
+        driverRefreshIntervalId = null;
+      }
+    }
+
+    // ---------- DRIVER SIGNUP & LOGIN ----------
+    document.getElementById("driver-signup-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("ds-name").value.trim();
+      const email = document.getElementById("ds-email").value.trim();
+      const password = document.getElementById("ds-password").value.trim();
+      const vehicle = document.getElementById("ds-vehicle").value.trim();
+      const baseLocation = document.getElementById("ds-location").value.trim();
+
+      try {
+        const res = await fetch(`${API_BASE}/api/driver/signup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password, vehicle, baseLocation }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Driver signup failed");
+
+        alert("Driver registered! Please login.");
+        document.getElementById("driver-email").value = email;
+        showScreen("driver-login-screen");
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById("driver-login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("driver-email").value.trim();
+      const password = document.getElementById("driver-password").value.trim();
+      const status = document.getElementById("driver-login-status");
+
+      console.log("Driver login attempt:", email);
+      try {
+        const res = await fetch(`${API_BASE}/api/driver/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        console.log("Driver login response:", res.status, data);
+        if (!res.ok) throw new Error(data.message || "Driver login failed");
+
+        currentDriver = data.driver;
+        localStorage.setItem("am_currentDriver", JSON.stringify(currentDriver));
+
+        setProfileInitial(currentDriver.name);
+        document.getElementById("driver-name").textContent = currentDriver.name;
+        document.getElementById("driver-vehicle").textContent = currentDriver.vehicle;
+        document.getElementById("driver-location").textContent = currentDriver.baseLocation;
+        status.textContent = "";
+        lockToRole("driver");
+        showScreen("driver-home-screen");
+
+        driverBookingsInitialized = false;
+        lastDriverMaxBookingId = 0;
+
+        initDriverMap();
+        loadDriverBookings();
+        startDriverGps();
+        startDriverRefresh();
+      } catch (err) {
+        console.error("Driver login error:", err);
+        status.textContent = err.message;
+        status.className = "status warning";
+      }
+    });
+
+    function logoutDriver() {
+      currentDriver = null;
+      localStorage.removeItem("am_currentDriver");
+      setProfileInitial(null);
+      showAllRoleTabs();
+      showScreen("driver-login-screen");
+      document.getElementById("driver-bookings-list").textContent = "No bookings yet.";
+      document.getElementById("driver-map-status").textContent = "Waiting for assigned trip";
+      stopDriverGps();
+      stopDriverRefresh();
+      driverBookingsInitialized = false;
+      lastDriverMaxBookingId = 0;
+    }
+
+    function startDriverGps() {
+      if (!navigator.geolocation) {
+        console.warn("GPS not supported");
+        return;
+      }
+      if (!currentDriver) return;
+
+      gpsWatchId = navigator.geolocation.watchPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          try {
+            await fetch(`${API_BASE}/api/driver/location`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: currentDriver.email,
+                lat: latitude,
+                lng: longitude,
+              }),
+            });
+          } catch (err) {
+            console.error("GPS update failed", err);
+          }
+        },
+        (err) => console.error(err),
+        { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+      );
+    }
+
+    function stopDriverGps() {
+      if (gpsWatchId !== null) {
+        navigator.geolocation.clearWatch(gpsWatchId);
+        gpsWatchId = null;
+      }
+    }
+
+    async function loadDriverBookings() {
+      if (!currentDriver) return;
+      const listEl = document.getElementById("driver-bookings-list");
+      const dateFilterEl = document.getElementById("driver-date-filter");
+      const date = dateFilterEl ? dateFilterEl.value : "";
+
+      try {
+        let url = `${API_BASE}/api/driver/bookings?email=${encodeURIComponent(currentDriver.email)}`;
+        if (date) {
+          url += `&date=${encodeURIComponent(date)}`;
+        }
+
+        const res = await fetch(url);
+        const myBookings = await res.json();
+        if (!res.ok) throw new Error("Failed to load bookings");
+
+        if (!myBookings.length) {
+          listEl.textContent = "No bookings yet for this date.";
+          updateDriverMapWithAllBookings(null);
+          driverBookingsInitialized = true;
+          return;
+        }
+
+        // detect newest booking ID
+        let maxId = 0;
+        myBookings.forEach((b) => {
+          if (b.id > maxId) maxId = b.id;
+        });
+
+        if (!driverBookingsInitialized) {
+          // first load: just initialise, no alert
+          lastDriverMaxBookingId = maxId;
+          driverBookingsInitialized = true;
+        } else if (maxId > lastDriverMaxBookingId) {
+          alert("🚨 New emergency booking assigned to you!");
+          lastDriverMaxBookingId = maxId;
+        }
+
+        const latest = myBookings[0];
+        const isNewBooking = latest.id !== lastDriverMaxBookingId;
+        if (isNewBooking) {
+          driverMapBoundsInitialized = false;
+        }
+
+        listEl.innerHTML = "";
+        myBookings.forEach((b) => {
+          const div = document.createElement("div");
+          div.className = "list-item";
+          div.style.borderTop = "1px solid rgba(31, 41, 55, 0.9)";
+          div.style.paddingTop = "0.45rem";
+          div.style.marginTop = "0.45rem";
+
+          const created = b.createdAt ? b.createdAt.replace("T", " ").slice(0, 16) : "";
+          
+          // Show location only if accepted, hide if still pending
+          const pickupDisplay = b.status === "pending" 
+            ? "📍 Location hidden (will show after you accept)" 
+            : b.pickup;
+          
+          div.innerHTML =
+            `<b>${created}</b><br>` +
+            `${b.emergencyType} · ${pickupDisplay}` +
+            `<br>User: ${b.userName}` +
+            `<br>📞 Phone: <b>${b.userPhone || 'Not provided'}</b>` +
+            `<br>Status: ${b.status} · ETA: ${b.eta} min`;
+
+          // Display rejection messages
+          let rejectionMsg = "";
+          if (b.status === "user-rejected") {
+            rejectionMsg = "<br><span style='color:#ef4444; font-weight:bold;'>❌ User has rejected this request.</span>";
+          } else if (b.status === "hospital-rejected") {
+            rejectionMsg = "<br><span style='color:#ef4444; font-weight:bold;'>❌ Hospital has rejected this case.</span>";
+          }
+          
+          if (rejectionMsg) {
+            const rejDiv = document.createElement("div");
+            rejDiv.innerHTML = rejectionMsg;
+            div.appendChild(rejDiv);
+          }
+
+          // Only show note and buttons for pending/accepted bookings, not for rejected ones
+          if (b.status !== "user-rejected" && b.status !== "hospital-rejected" && b.status !== "driver-rejected") {
+            const noteLabel = document.createElement("div");
+            noteLabel.style.marginTop = "0.35rem";
+            noteLabel.style.fontSize = "0.75rem";
+            noteLabel.style.color = "#9ca3af";
+            noteLabel.textContent = "Message to hospital (emergency note):";
+
+            const noteInput = document.createElement("textarea");
+            noteInput.value = b.driverNote || "";
+            noteInput.placeholder = "e.g., Polytrauma, prepare OT and blood units.";
+            noteInput.style.marginTop = "0.25rem";
+
+            const btnRow = document.createElement("div");
+            btnRow.style.display = "flex";
+            btnRow.style.gap = "0.4rem";
+            btnRow.style.marginTop = "0.35rem";
+
+            const acceptBtn = document.createElement("button");
+            acceptBtn.className = "btn btn-primary";
+            acceptBtn.style.flex = "1";
+            acceptBtn.textContent =
+              b.status === "pending" ? "Accept & start pickup" : "Update status";
+
+            acceptBtn.onclick = async () => {
+              try {
+                const res = await fetch(`${API_BASE}/api/bookings/${b.id}/accept`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    driverNote: noteInput.value.trim(),
+                    driverEmail: currentDriver.email,
+                  }),
+                });
+                const updated = await res.json();
+                if (!res.ok) throw new Error(updated.message || "Failed to update booking");
+
+                alert("Booking updated. User & hospital can see your status and note.");
+                loadDriverBookings();
+              } catch (err) {
+                alert(err.message);
+              }
+            };
+
+            // Add reject button for both pending and accepted bookings
+            const rejectBtn = document.createElement("button");
+            rejectBtn.className = "btn btn-danger";
+            rejectBtn.style.flex = "1";
+            rejectBtn.style.backgroundColor = "var(--danger)";
+            rejectBtn.style.color = "white";
+            rejectBtn.textContent = b.status === "pending" ? "Reject" : "Cancel & Reject";
+
+            rejectBtn.onclick = async () => {
+              const confirmMsg = b.status === "pending" 
+                ? "Are you sure you want to reject this request?" 
+                : "Are you sure you want to cancel and reject this accepted request?";
+              
+              if (confirm(confirmMsg)) {
+                try {
+                  const res = await fetch(`${API_BASE}/api/bookings/${b.id}/driver-reject`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      driverEmail: currentDriver.email,
+                      rejectionReason: "Driver rejected"
+                    }),
+                  });
+                  const updated = await res.json();
+                  if (!res.ok) throw new Error(updated.message || "Failed to reject booking");
+
+                  alert(b.status === "pending" ? "Request rejected. User will be notified." : "Request cancelled. User and hospital will be notified.");
+                  loadDriverBookings();
+                } catch (err) {
+                  alert(err.message);
+                }
+              }
+            };
+
+            btnRow.appendChild(rejectBtn);
+
+            btnRow.appendChild(acceptBtn);
+            div.appendChild(noteLabel);
+            div.appendChild(noteInput);
+            div.appendChild(btnRow);
+          }
+
+          listEl.appendChild(div);
+        });
+
+        updateDriverMapWithAllBookings(myBookings);
+      } catch (err) {
+        listEl.textContent = err.message;
+      }
+    }
+
+    // ---------- HOSPITAL SIGNUP & LOGIN ----------
+    document.getElementById("hospital-signup-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("hs-name").value.trim();
+      const email = document.getElementById("hs-email").value.trim();
+      const password = document.getElementById("hs-password").value.trim();
+      const location = document.getElementById("hs-location").value.trim();
+
+      try {
+        const res = await fetch(`${API_BASE}/api/hospital/signup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password, location }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Hospital signup failed");
+
+        alert("Hospital registered! Please login.");
+        document.getElementById("hospital-email").value = email;
+        showScreen("hospital-login-screen");
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById("hospital-login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("hospital-email").value.trim();
+      const password = document.getElementById("hospital-password").value.trim();
+      const status = document.getElementById("hospital-login-status");
+
+      console.log("Hospital login attempt:", email);
+      try {
+        const res = await fetch(`${API_BASE}/api/hospital/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        console.log("Hospital login response:", res.status, data);
+        if (!res.ok) throw new Error(data.message || "Hospital login failed");
+
+        currentHospital = data.hospital;
+        localStorage.setItem("am_currentHospital", JSON.stringify(currentHospital));
+
+        setProfileInitial(currentHospital.name);
+        document.getElementById("hospital-name").textContent = currentHospital.name;
+        document.getElementById("hospital-location").textContent = currentHospital.location;
+        status.textContent = "";
+        lockToRole("hospital");
+        showScreen("hospital-home-screen");
+        loadHospitalBookings();
+      } catch (err) {
+        console.error("Hospital login error:", err);
+        status.textContent = err.message;
+        status.className = "status warning";
+      }
+    });
+
+    function logoutHospital() {
+      currentHospital = null;
+      localStorage.removeItem("am_currentHospital");
+      setProfileInitial(null);
+      showAllRoleTabs();
+      showScreen("hospital-login-screen");
+      document.getElementById("hospital-bookings-list").textContent = "No bookings yet.";
+    }
+
+    async function loadHospitalBookings() {
+      if (!currentHospital) return;
+      const list = document.getElementById("hospital-bookings-list");
+      const dateFilterEl = document.getElementById("hospital-date-filter");
+      const date = dateFilterEl ? dateFilterEl.value : "";
+
+      try {
+        let url = `${API_BASE}/api/hospital/bookings?email=${encodeURIComponent(currentHospital.email)}`;
+        if (date) {
+          url += `&date=${encodeURIComponent(date)}`;
+        }
+
+        const res = await fetch(url);
+        const myBookings = await res.json();
+        if (!res.ok) throw new Error("Failed to load cases");
+
+        if (!myBookings.length) {
+          list.textContent = "No assigned cases for this date.";
+          return;
+        }
+
+        list.innerHTML = "";
+        myBookings.forEach((b) => {
+          const div = document.createElement("div");
+          div.className = "list-item";
+          div.style.borderTop = "1px solid rgba(31, 41, 55, 0.9)";
+          div.style.paddingTop = "0.45rem";
+          div.style.marginTop = "0.45rem";
+
+          const created = b.createdAt ? b.createdAt.replace("T", " ").slice(0, 16) : "";
+
+          div.innerHTML =
+            `<b>${created}</b><br>` +
+            `${b.emergencyType} · ${b.pickup}` +
+            `<br>User: ${b.userName}` +
+            `<br>Driver: ${b.driverName} (${b.driverVehicle})` +
+            `<br>Status: ${b.status} · ETA: ${b.eta} min` +
+            (b.driverNote
+              ? `<br><b style="color:#f59e0b;">Driver note:</b> ${b.driverNote}`
+              : "");
+
+          // Display rejection messages and reject button for accepted bookings
+          if (b.status === "driver-rejected") {
+            const rejDiv = document.createElement("div");
+            rejDiv.innerHTML = "<br><span style='color:#ef4444; font-weight:bold;'>❌ Driver has rejected this case.</span>";
+            div.appendChild(rejDiv);
+          } else if (b.status === "user-rejected") {
+            const rejDiv = document.createElement("div");
+            rejDiv.innerHTML = "<br><span style='color:#ef4444; font-weight:bold;'>❌ User has rejected this case.</span>";
+            div.appendChild(rejDiv);
+          } else if (b.status === "accepted") {
+            // Add reject button only for accepted bookings
+            const btnDiv = document.createElement("div");
+            btnDiv.style.display = "flex";
+            btnDiv.style.gap = "0.4rem";
+            btnDiv.style.marginTop = "0.35rem";
+
+            const rejectBtn = document.createElement("button");
+            rejectBtn.className = "btn btn-danger";
+            rejectBtn.style.flex = "1";
+            rejectBtn.style.backgroundColor = "var(--danger)";
+            rejectBtn.style.color = "white";
+            rejectBtn.textContent = "Reject Case";
+
+            rejectBtn.onclick = async () => {
+              if (confirm("Are you sure you want to reject this case?")) {
+                try {
+                  const res = await fetch(`${API_BASE}/api/bookings/${b.id}/hospital-reject`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      hospitalEmail: currentHospital.email,
+                      rejectionReason: "Hospital rejected"
+                    }),
+                  });
+                  const updated = await res.json();
+                  if (!res.ok) throw new Error(updated.message || "Failed to reject case");
+
+                  alert("Case rejected. Driver and user will be notified.");
+                  loadHospitalBookings();
+                } catch (err) {
+                  alert(err.message);
+                }
+              }
+            };
+
+            btnDiv.appendChild(rejectBtn);
+            div.appendChild(btnDiv);
+          }
+
+          list.appendChild(div);
+        });
+      } catch (err) {
+        list.textContent = err.message;
+      }
+    }
+
+    // ---------- ADMIN SIGNUP & LOGIN ----------
+    document.getElementById("admin-login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("admin-email").value.trim();
+      const password = document.getElementById("admin-password").value.trim();
+      const status = document.getElementById("admin-login-status");
+
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Admin login failed");
+
+        currentAdmin = data.admin;
+        localStorage.setItem("am_currentAdmin", JSON.stringify(currentAdmin));
+
+        setProfileInitial(currentAdmin.name);
+        document.getElementById("admin-name").textContent = currentAdmin.name;
+        status.textContent = "";
+        lockToRole("admin");
+        showScreen("admin-home-screen");
+        loadAdminDashboard();
+      } catch (err) {
+        console.error("Admin login error:", err);
+        status.textContent = err.message;
+        status.className = "status warning";
+      }
+    });
+
+    function logoutAdmin() {
+      currentAdmin = null;
+      localStorage.removeItem("am_currentAdmin");
+      setProfileInitial(null);
+      showAllRoleTabs();
+      showScreen("admin-login-screen");
+    }
+
+    async function loadAdminDashboard() {
+      if (!currentAdmin) return;
+      
+      try {
+        // Load summary
+        const summaryRes = await fetch(`${API_BASE}/api/admin/analytics/summary`);
+        const summary = await summaryRes.json();
+        
+        document.getElementById("stat-total-requests").textContent = summary.totalBookings;
+        document.getElementById("stat-accepted").textContent = summary.acceptedBookings;
+        document.getElementById("stat-rejected").textContent = summary.rejectedBookings;
+        document.getElementById("stat-drivers").textContent = summary.totalDrivers;
+
+        // Load daily stats
+        const dailyRes = await fetch(`${API_BASE}/api/admin/analytics/daily`);
+        const dailyData = await dailyRes.json();
+        drawDailyChart(dailyData);
+
+        // Load hospital stats
+        const hospitalRes = await fetch(`${API_BASE}/api/admin/analytics/hospitals`);
+        const hospitalData = await hospitalRes.json();
+        drawHospitalChart(hospitalData);
+
+        // Load driver stats
+        const driverRes = await fetch(`${API_BASE}/api/admin/analytics/drivers`);
+        const driverData = await driverRes.json();
+        displayDriverStats(driverData);
+
+        // Load bookings
+        const bookingsRes = await fetch(`${API_BASE}/api/admin/bookings`);
+        const bookings = await bookingsRes.json();
+        displayAdminBookings(bookings);
+      } catch (err) {
+        console.error("Dashboard load error:", err);
+      }
+    }
+
+    let dailyChart = null;
+    let hospitalChart = null;
+
+    function drawDailyChart(data) {
+      const ctx = document.getElementById("daily-chart").getContext("2d");
+      
+      const labels = data.slice().reverse().map(d => d.date);
+      const totalData = data.slice().reverse().map(d => d.total);
+      const acceptedData = data.slice().reverse().map(d => d.accepted || 0);
+      const rejectedData = data.slice().reverse().map(d => d.rejected || 0);
+
+      if (dailyChart) dailyChart.destroy();
+
+      dailyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Total Requests',
+              data: totalData,
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              tension: 0.4
+            },
+            {
+              label: 'Accepted',
+              data: acceptedData,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              tension: 0.4
+            },
+            {
+              label: 'Rejected',
+              data: rejectedData,
+              borderColor: '#ef4444',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              tension: 0.4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: true } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    function drawHospitalChart(data) {
+      const ctx = document.getElementById("hospital-chart").getContext("2d");
+      
+      const labels = data.map(d => d.hospitalName);
+      const totalData = data.map(d => d.total);
+      const acceptedData = data.map(d => d.accepted || 0);
+
+      if (hospitalChart) hospitalChart.destroy();
+
+      hospitalChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Total Cases',
+              data: totalData,
+              backgroundColor: '#3b82f6'
+            },
+            {
+              label: 'Accepted',
+              data: acceptedData,
+              backgroundColor: '#10b981'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: true } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    function displayDriverStats(data) {
+      const listEl = document.getElementById("driver-performance");
+      listEl.innerHTML = "";
+
+      if (!data.length) {
+        listEl.textContent = "No driver data available.";
+        return;
+      }
+
+      data.forEach(driver => {
+        const div = document.createElement("div");
+        div.className = "list-item";
+        div.style.borderTop = "1px solid rgba(31, 41, 55, 0.9)";
+        div.style.paddingTop = "0.45rem";
+        div.style.marginTop = "0.45rem";
+
+        div.innerHTML = `
+          <b>${driver.driverName}</b><br>
+          Email: ${driver.driverEmail}<br>
+          <span style="color:#3b82f6;">Total: ${driver.total}</span> · 
+          <span style="color:#10b981;">Accepted: ${driver.accepted}</span> · 
+          <span style="color:#ef4444;">Rejected: ${driver.rejected}</span>
+        `;
+
+        listEl.appendChild(div);
+      });
+    }
+
+    function displayAdminBookings(bookings) {
+      const listEl = document.getElementById("admin-bookings-list");
+      listEl.innerHTML = "";
+
+      if (!bookings.length) {
+        listEl.textContent = "No bookings yet.";
+        return;
+      }
+
+      bookings.slice(0, 10).forEach(b => {
+        const div = document.createElement("div");
+        div.className = "list-item";
+        div.style.borderTop = "1px solid rgba(31, 41, 55, 0.9)";
+        div.style.paddingTop = "0.45rem";
+        div.style.marginTop = "0.45rem";
+
+        const created = b.createdAt ? b.createdAt.replace("T", " ").slice(0, 16) : "";
+
+        div.innerHTML = `
+          <b>${created}</b><br>
+          <b style="color:#3b82f6;">${b.emergencyType}</b> · ${b.pickup}<br>
+          User: ${b.userName}<br>
+          Driver: ${b.driverName}<br>
+          Hospital: ${b.hospitalName}<br>
+          Status: <span style="color:${b.status === 'accepted' ? '#10b981' : b.status.includes('rejected') ? '#ef4444' : '#f59e0b'};"><b>${b.status}</b></span>
+        `;
+
+        listEl.appendChild(div);
+      });
+    }
+
+    // --------- Restore session on reload ----------
+    (function restoreSession() {
+      try {
+        const savedUser = localStorage.getItem("am_currentUser");
+        const savedDriver = localStorage.getItem("am_currentDriver");
+        const savedHospital = localStorage.getItem("am_currentHospital");
+        const savedAdmin = localStorage.getItem("am_currentAdmin");
+
+        if (savedUser) {
+          currentUser = JSON.parse(savedUser);
+          setProfileInitial(currentUser.name);
+          document.getElementById("home-username").textContent = currentUser.name;
+          lockToRole("user");
+          document.getElementById("tab-user").classList.add("active");
+          showScreen("user-home-screen");
+          checkApiHealth();
+          refreshUserView();
+          return;
+        }
+
+        if (savedDriver) {
+          currentDriver = JSON.parse(savedDriver);
+          setProfileInitial(currentDriver.name);
+          document.getElementById("driver-name").textContent = currentDriver.name;
+          document.getElementById("driver-vehicle").textContent = currentDriver.vehicle;
+          document.getElementById("driver-location").textContent = currentDriver.baseLocation;
+          lockToRole("driver");
+          document.getElementById("tab-driver").classList.add("active");
+          showScreen("driver-home-screen");
+          driverBookingsInitialized = false;
+          lastDriverMaxBookingId = 0;
+          initDriverMap();
+          loadDriverBookings();
+          startDriverGps();
+          startDriverRefresh();
+          return;
+        }
+
+        if (savedHospital) {
+          currentHospital = JSON.parse(savedHospital);
+          setProfileInitial(currentHospital.name);
+          document.getElementById("hospital-name").textContent = currentHospital.name;
+          document.getElementById("hospital-location").textContent = currentHospital.location;
+          lockToRole("hospital");
+          document.getElementById("tab-hospital").classList.add("active");
+          showScreen("hospital-home-screen");
+          loadHospitalBookings();
+          return;
+        }
+
+        if (savedAdmin) {
+          currentAdmin = JSON.parse(savedAdmin);
+          setProfileInitial(currentAdmin.name);
+          document.getElementById("admin-name").textContent = currentAdmin.name;
+          lockToRole("admin");
+          document.getElementById("tab-admin").classList.add("active");
+          showScreen("admin-home-screen");
+          loadAdminDashboard();
+          return;
+        }
+
+        showAllRoleTabs();
+        document.getElementById("tab-user").classList.add("active");
+        showScreen("user-login-screen");
+      } catch (e) {
+        console.error("Session restore failed", e);
+      }
+    })();
+
+    // Auto-refresh every 5 seconds
+    setInterval(() => {
+      if (currentUser) refreshUserView();
+      if (currentDriver) loadDriverBookings();
+      if (currentHospital) loadHospitalBookings();
+      if (currentAdmin) loadAdminDashboard();
+    }, 5000);
+
+    document.getElementById("tab-user").addEventListener("click", () => {
+      refreshUserView();
+    });
+  </script>
+</body>
+</html>
